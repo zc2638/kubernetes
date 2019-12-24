@@ -32,15 +32,16 @@ import (
 )
 
 var (
-	vmssNameSeparator = "_"
+	vmssNameSeparator  = "_"
+	vmssCacheSeparator = "#"
 
 	vmssKey                 = "k8svmssKey"
 	vmssVirtualMachinesKey  = "k8svmssVirtualMachinesKey"
 	availabilitySetNodesKey = "k8sAvailabilitySetNodesKey"
 
-	availabilitySetNodesCacheTTLDefaultInSeconds = 900
-	vmssCacheTTLDefaultInSeconds                 = 600
-	vmssVirtualMachinesCacheTTLDefaultInSeconds  = 600
+	availabilitySetNodesCacheTTL = 15 * time.Minute
+	vmssTTL                      = 10 * time.Minute
+	vmssVirtualMachinesTTL       = 10 * time.Minute
 )
 
 type vmssVirtualMachinesEntry struct {
@@ -87,10 +88,7 @@ func (ss *scaleSet) newVMSSCache() (*timedCache, error) {
 		return localCache, nil
 	}
 
-	if ss.Config.VmssCacheTTLInSeconds == 0 {
-		ss.Config.VmssCacheTTLInSeconds = vmssCacheTTLDefaultInSeconds
-	}
-	return newTimedcache(time.Duration(ss.Config.VmssCacheTTLInSeconds)*time.Second, getter)
+	return newTimedcache(vmssTTL, getter)
 }
 
 func extractVmssVMName(name string) (string, string, error) {
@@ -150,10 +148,7 @@ func (ss *scaleSet) newVMSSVirtualMachinesCache() (*timedCache, error) {
 		return localCache, nil
 	}
 
-	if ss.Config.VmssVirtualMachinesCacheTTLInSeconds == 0 {
-		ss.Config.VmssVirtualMachinesCacheTTLInSeconds = vmssVirtualMachinesCacheTTLDefaultInSeconds
-	}
-	return newTimedcache(time.Duration(ss.Config.VmssVirtualMachinesCacheTTLInSeconds)*time.Second, getter)
+	return newTimedcache(vmssVirtualMachinesTTL, getter)
 }
 
 func (ss *scaleSet) deleteCacheForNode(nodeName string) error {
@@ -192,10 +187,7 @@ func (ss *scaleSet) newAvailabilitySetNodesCache() (*timedCache, error) {
 		return localCache, nil
 	}
 
-	if ss.Config.AvailabilitySetNodesCacheTTLInSeconds == 0 {
-		ss.Config.AvailabilitySetNodesCacheTTLInSeconds = availabilitySetNodesCacheTTLDefaultInSeconds
-	}
-	return newTimedcache(time.Duration(ss.Config.AvailabilitySetNodesCacheTTLInSeconds)*time.Second, getter)
+	return newTimedcache(availabilitySetNodesCacheTTL, getter)
 }
 
 func (ss *scaleSet) isNodeManagedByAvailabilitySet(nodeName string, crt cacheReadType) (bool, error) {

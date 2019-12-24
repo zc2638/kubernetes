@@ -439,7 +439,8 @@ func testWebhookAdmission(t *testing.T, watchCache bool) {
 		// turn off admission plugins that add finalizers
 		"--disable-admission-plugins=ServiceAccount,StorageObjectInUseProtection",
 		// force enable all resources so we can check storage.
-		"--runtime-config=api/all=true",
+		// TODO: drop these once we stop allowing them to be served.
+		"--runtime-config=api/all=true,extensions/v1beta1/deployments=true,extensions/v1beta1/daemonsets=true,extensions/v1beta1/replicasets=true,extensions/v1beta1/podsecuritypolicies=true,extensions/v1beta1/networkpolicies=true",
 	}, etcdConfig)
 	defer server.TearDownFn()
 
@@ -595,7 +596,7 @@ func testWebhookAdmission(t *testing.T, watchCache bool) {
 		})
 	}
 
-	duration := time.Since(start)
+	duration := time.Now().Sub(start)
 	perResourceDuration := time.Duration(int(duration) / count)
 	if perResourceDuration >= 150*time.Millisecond {
 		t.Errorf("expected resources to process in < 150ms, average was %v", perResourceDuration)
@@ -735,10 +736,6 @@ func testResourceDelete(c *testContext) {
 		}
 		return true, nil
 	})
-	if err != nil {
-		c.t.Error(err)
-		return
-	}
 
 	// remove the finalizer
 	_, err = c.client.Resource(c.gvr).Namespace(obj.GetNamespace()).Patch(
@@ -1434,11 +1431,17 @@ var (
 )
 
 func shouldTestResource(gvr schema.GroupVersionResource, resource metav1.APIResource) bool {
-	return sets.NewString(resource.Verbs...).HasAny("create", "update", "patch", "connect", "delete", "deletecollection")
+	if !sets.NewString(resource.Verbs...).HasAny("create", "update", "patch", "connect", "delete", "deletecollection") {
+		return false
+	}
+	return true
 }
 
 func shouldTestResourceVerb(gvr schema.GroupVersionResource, resource metav1.APIResource, verb string) bool {
-	return sets.NewString(resource.Verbs...).Has(verb)
+	if !sets.NewString(resource.Verbs...).Has(verb) {
+		return false
+	}
+	return true
 }
 
 //

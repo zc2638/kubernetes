@@ -1,0 +1,61 @@
+FROM debian:buster-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
+
+COPY clean-install /usr/local/bin/clean-install
+
+# 保留必要的包
+RUN apt-get update \
+    && apt-get dist-upgrade -y \
+    && apte-get install -y gnupg libcap2 \
+    && apt-mark hold apt gnupg adduser passwd libsemanage1 libcap2
+
+# 移除不需要的包
+RUN echo "Yes, do as I say!" | apt-get purge \
+    bash \
+    e2fsprogs \
+    libcap2-bin \
+    libmount1 \
+    libsmartcols1 \
+    libblkid1 \
+    libss2 \
+    ncurses-base \
+    ncurses-bin \
+    tzdata
+
+# 增加软连接
+WORKDIR /usr/local/bin
+RUN touch noop && \
+    chmod 555 noop && \
+    ln -s noop runlevel && \
+    ln -s noop invoke-rc.d && \
+    ln -s noop update-rc.d
+WORKDIR /
+
+# 清理缓存和文件
+RUN apt-get autoremove -y && \
+    apt-get clean -y && \
+    tar -czf /usr/share/copyrights.tar.gz /usr/share/common-licenses /usr/share/doc/*/copyright && \
+    rm -rf \
+        /usr/share/doc \
+        /usr/share/man \
+        /usr/share/info \
+        /usr/share/locale \
+        /var/lib/apt/lists/* \
+        /var/log/* \
+        /var/cache/debconf/* \
+        /usr/share/common-licenses* \
+        /usr/share/bash-completion \
+        ~/.bashrc \
+        ~/.profile \
+        /etc/systemd \
+        /lib/lsb \
+        /lib/udev \
+        /usr/lib/x86_64-linux-gnu/gconv/IBM* \
+        /usr/lib/x86_64-linux-gnu/gconv/EBC* && \
+    mkdir -p /usr/share/man/man1 /usr/share/man/man2 \
+        /usr/share/man/man3 /usr/share/man/man4 \
+        /usr/share/man/man5 /usr/share/man/man6 \
+        /usr/share/man/man7 /usr/share/man/man8
