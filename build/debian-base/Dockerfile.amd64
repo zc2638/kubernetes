@@ -9,7 +9,7 @@ COPY clean-install /usr/local/bin/clean-install
 # 保留必要的包
 RUN apt-get update \
     && apt-get dist-upgrade -y \
-    && apte-get install -y gnupg libcap2 \
+    && apt-get install -y gnupg libcap2 \
     && apt-mark hold apt gnupg adduser passwd libsemanage1 libcap2
 
 # 移除不需要的包
